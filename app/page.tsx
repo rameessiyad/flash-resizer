@@ -24,6 +24,7 @@ export default function Home() {
   const [busy, setBusy] = useState("");
   const [res, setRes] = useState<ProcessResult | null>(null);
   const [err, setErr] = useState("");
+  const [enh, setEnh] = useState(false);
   const cv = useRef<HTMLCanvasElement>(null);
   const resRef = useRef<HTMLDivElement>(null);
   const preset = PRESETS[id];
@@ -34,7 +35,7 @@ export default function Home() {
   useEffect(() => {
     if (bmp && cv.current)
       try {
-        renderCanvas(bmp, preset, crop, ov, cv.current);
+        renderCanvas(bmp, preset, crop, ov, cv.current, enh);
       } catch {}
   });
   useEffect(
@@ -87,7 +88,15 @@ export default function Home() {
     setBusy("Resizing and compressing...");
     await new Promise((r) => setTimeout(r, 30));
     try {
-      setRes(await processImage({ bitmap: bmp, preset, crop, overlay: ov }));
+      setRes(
+        await processImage({
+          bitmap: bmp,
+          preset,
+          crop,
+          overlay: ov,
+          enhance: enh,
+        }),
+      );
     } catch (x) {
       setErr(
         x instanceof UserError
@@ -241,6 +250,7 @@ export default function Home() {
                 {preset.textOverlay && (
                   <p className="mt-2 text-center text-xs text-slate-600">
                     The white strip at the bottom is added to your final image.
+                    Preview is enlarged; the true size appears after processing.
                   </p>
                 )}
               </div>
@@ -256,6 +266,30 @@ export default function Home() {
                   }}
                 >
                   Reset crop
+                </button>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enh}
+                  onClick={() => {
+                    setEnh(!enh);
+                    clearResult();
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl border p-3 text-left text-sm transition ${FOCUS} ${enh ? "border-transparent bg-gradient-to-r from-teal-50 via-indigo-50 to-fuchsia-50 shadow-sm" : "border-slate-200 bg-white"}`}
+                >
+                  <span>
+                    <span className="font-semibold">✨ Enhance image</span>
+                    <span className="block text-xs text-slate-600">
+                      Sharpens blur and fixes dull contrast. No AI.
+                    </span>
+                  </span>
+                  <span
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${enh ? "btn-grad" : "bg-slate-300"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${enh ? "left-5" : "left-0.5"}`}
+                    />
+                  </span>
                 </button>
                 {preset.textOverlay && (
                   <>

@@ -2,6 +2,7 @@ import type { Preset } from "../presets";
 import { coverRect, Crop } from "./crop";
 import { compress } from "./compression";
 import { drawOverlay, stripHeight, Overlay } from "./textOverlay";
+import { enhance } from "./enhance";
 import { UserError } from "./validation";
 export type ProcessResult = {
   blob: Blob;
@@ -34,12 +35,48 @@ export async function loadBitmap(file: File): Promise<ImageBitmap> {
     );
   }
 }
+// Halve the image step by step before the final draw. One big jump (e.g. 1080px -> 150px)
+// skips pixels and loses detail; stepping down keeps text and edges far cleaner.
+function drawScaled(
+  ctx: CanvasRenderingContext2D,
+  src: CanvasImageSource,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  dw: number,
+  dh: number,
+) {
+  let cur = src,
+    cx = sx,
+    cy = sy,
+    cw = sw,
+    ch = sh;
+  while (cw / 2 >= dw && ch / 2 >= dh) {
+    const nw = Math.max(dw, Math.ceil(cw / 2)),
+      nh = Math.max(dh, Math.ceil(ch / 2));
+    const t = document.createElement("canvas");
+    t.width = nw;
+    t.height = nh;
+    const tc = t.getContext("2d");
+    if (!tc) break;
+    tc.imageSmoothingQuality = "high";
+    tc.drawImage(cur, cx, cy, cw, ch, 0, 0, nw, nh);
+    cur = t;
+    cx = 0;
+    cy = 0;
+    cw = nw;
+    ch = nh;
+  }
+  ctx.drawImage(cur, cx, cy, cw, ch, 0, 0, dw, dh);
+}
 export function renderCanvas(
   bmp: ImageBitmap,
   p: Preset,
   crop: Crop,
   ov?: Overlay,
   target?: HTMLCanvasElement,
+  enh = false,
 ) {
   const c = target ?? document.createElement("canvas");
   c.width = p.width;
@@ -52,7 +89,8 @@ export function renderCanvas(
   ctx.imageSmoothingQuality = "high";
   const ph = p.height - (p.textOverlay ? stripHeight(p.height) : 0);
   const r = coverRect(bmp.width, bmp.height, p.width, ph, crop);
-  ctx.drawImage(bmp, r.sx, r.sy, r.sw, r.sh, 0, 0, p.width, ph);
+  drawScaled(ctx, bmp, r.sx, r.sy, r.sw, r.sh, p.width, ph);
+  if (enh) enhance(ctx, p.width, ph);
   if (p.textOverlay && ov) drawOverlay(ctx, p.width, p.height, ov);
   return c;
 }
@@ -61,9 +99,10 @@ export async function processImage(a: {
   preset: Preset;
   crop: Crop;
   overlay?: Overlay;
+  enhance?: boolean;
 }): Promise<ProcessResult> {
   const { preset: p } = a;
-  const c = renderCanvas(a.bitmap, p, a.crop, a.overlay);
+  const c = renderCanvas(a.bitmap, p, a.crop, a.overlay, undefined, a.enhance);
   const { blob } = await compress(c, p.maxKB, p.targetKB);
   const sizeKB = blob.size / 1024; // real byte size
   const low = sizeKB < p.minKB;
