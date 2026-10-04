@@ -28,6 +28,7 @@ export default function Home() {
   const cv = useRef<HTMLCanvasElement>(null);
   const resRef = useRef<HTMLDivElement>(null);
   const preset = PRESETS[id];
+  const k = Math.max(1, Math.floor(320 / preset.width)); // whole-number preview zoom: no blurry smoothing
   const ov = preset.textOverlay
     ? { name: name.trim() || "YOUR NAME", date: fmt(date) }
     : undefined;
@@ -243,14 +244,20 @@ export default function Home() {
               <div>
                 <canvas
                   ref={cv}
-                  className="mx-auto w-full max-w-xs rounded-lg bg-white shadow-lg ring-1 ring-slate-200"
-                  style={{ aspectRatio: `${preset.width}/${preset.height}` }}
+                  className="mx-auto block max-w-full rounded-lg bg-white shadow-lg ring-1 ring-slate-200"
+                  style={{
+                    width: preset.width * k,
+                    aspectRatio: `${preset.width}/${preset.height}`,
+                    imageRendering: k > 1 ? "pixelated" : "auto",
+                  }}
                   aria-label="Crop preview"
                 />
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  Exact output: {preset.width} × {preset.height} px
+                </p>
                 {preset.textOverlay && (
                   <p className="mt-2 text-center text-xs text-slate-600">
                     The white strip at the bottom is added to your final image.
-                    Preview is enlarged; the true size appears after processing.
                   </p>
                 )}
               </div>
