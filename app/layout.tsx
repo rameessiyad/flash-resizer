@@ -1,3 +1,4 @@
+import Footer from "./components/Footer";
 import "./globals.css";
 import type { Metadata } from "next";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         {children}
+        <Footer />
       </body>
     </html>
   );
