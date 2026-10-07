@@ -17,9 +17,9 @@ export const PRESETS = {
     kind: "photo",
     width: 150,
     height: 200,
-    minKB: 10,
-    maxKB: 30,
-    targetKB: 25,
+    minKB: 20,
+    maxKB: 50,
+    targetKB: 30,
     textOverlay: true,
   },
   kerala_psc_sign: {
@@ -28,8 +28,8 @@ export const PRESETS = {
     kind: "signature",
     width: 150,
     height: 100,
-    minKB: 5,
-    maxKB: 30,
+    minKB: 10,
+    maxKB: 50,
     textOverlay: false,
   },
   indian_passport: {
