@@ -155,7 +155,11 @@ export default function ResizerApp({
       const blob: Blob = await new Promise((r) =>
         c.toBlob((b) => r(b!), "image/png"),
       );
-      const { removeBackground } = await import("@imgly/background-removal");
+      const libUrl =
+        "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm";
+      const { removeBackground } = await import(
+        /* webpackIgnore: true */ libUrl
+      );
       const out = await removeBackground(blob, {
         output: { format: "image/png" },
         progress: (_k: string, cur: number, tot: number) =>
