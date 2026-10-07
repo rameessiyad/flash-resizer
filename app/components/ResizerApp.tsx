@@ -14,6 +14,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const fmt = (iso: string) => iso.split("-").reverse().join("-");
 const FOCUS =
   "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+const SWATCHES = ["#FFFFFF", "#F1F5F9", "#DBEAFE", "#FFF7E6"];
 
 type Props = {
   initialId?: PresetId;
@@ -35,6 +36,14 @@ export default function ResizerApp({
   const [res, setRes] = useState<ProcessResult | null>(null);
   const [err, setErr] = useState("");
   const [enh, setEnh] = useState(false);
+
+  // Background removal
+  const [bg, setBg] = useState(false);
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [cut, setCut] = useState<ImageBitmap | null>(null); // transparent cut-out
+  const [flat, setFlat] = useState<ImageBitmap | null>(null); // cut-out on color
+  const src = bg && flat ? flat : bmp; // use this instead of bmp for render/process
+
   const cv = useRef<HTMLCanvasElement>(null);
   const resRef = useRef<HTMLDivElement>(null);
   const preset = PRESETS[id];
@@ -44,9 +53,9 @@ export default function ResizerApp({
     : undefined;
 
   useEffect(() => {
-    if (bmp && cv.current)
+    if (src && cv.current)
       try {
-        renderCanvas(bmp, preset, crop, ov, cv.current, enh);
+        renderCanvas(src, preset, crop, ov, cv.current, enh);
       } catch {}
   });
   useEffect(
@@ -60,9 +69,43 @@ export default function ResizerApp({
       resRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [res]);
 
+  // Flatten the cut-out onto the chosen color whenever either changes
+  useEffect(() => {
+    if (!cut) {
+      setFlat(null);
+      return;
+    }
+    const c = document.createElement("canvas");
+    c.width = cut.width;
+    c.height = cut.height;
+    const g = c.getContext("2d")!;
+    g.fillStyle = bgColor;
+    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(cut, 0, 0);
+    let dead = false;
+    createImageBitmap(c).then((b) => {
+      if (dead) return b.close();
+      setFlat((old) => {
+        old?.close();
+        return b;
+      });
+    });
+    return () => {
+      dead = true;
+    };
+  }, [cut, bgColor]);
+
   const clearResult = () => setRes(null);
+  const clearBg = () => {
+    cut?.close();
+    flat?.close();
+    setCut(null);
+    setFlat(null);
+    setBg(false);
+  };
   const reset = () => {
     bmp?.close();
+    clearBg();
     setBmp(null);
     setRes(null);
     setErr("");
@@ -76,6 +119,7 @@ export default function ResizerApp({
     setBusy("Preparing your image...");
     loadBitmap(f)
       .then((b) => {
+        clearBg();
         setBmp(b);
         setCrop(DEFAULT_CROP);
         clearResult();
@@ -89,8 +133,46 @@ export default function ResizerApp({
       )
       .finally(() => setBusy(""));
   };
-  const run = async () => {
+
+  const toggleBg = async () => {
+    if (bg) {
+      setBg(false);
+      return clearResult();
+    }
+    if (cut) {
+      setBg(true);
+      return clearResult();
+    }
     if (!bmp) return;
+    setErr("");
+    setBusy("Removing background...");
+    try {
+      // bitmap -> PNG blob, so size/orientation match what you see
+      const c = document.createElement("canvas");
+      c.width = bmp.width;
+      c.height = bmp.height;
+      c.getContext("2d")!.drawImage(bmp, 0, 0);
+      const blob: Blob = await new Promise((r) =>
+        c.toBlob((b) => r(b!), "image/png"),
+      );
+      const { removeBackground } = await import("@imgly/background-removal");
+      const out = await removeBackground(blob, {
+        output: { format: "image/png" },
+        progress: (_k: string, cur: number, tot: number) =>
+          tot &&
+          setBusy(`Removing background... ${Math.round((cur / tot) * 100)}%`),
+      });
+      setCut(await createImageBitmap(out));
+      setBg(true);
+      clearResult();
+    } catch {
+      setErr("Could not remove the background. Please try another image.");
+    }
+    setBusy("");
+  };
+
+  const run = async () => {
+    if (!src) return;
     if (preset.textOverlay && !name.trim())
       return setErr("Enter the candidate name.");
     if (preset.textOverlay && !date)
@@ -101,7 +183,7 @@ export default function ResizerApp({
     try {
       setRes(
         await processImage({
-          bitmap: bmp,
+          bitmap: src,
           preset,
           crop,
           overlay: ov,
@@ -162,8 +244,8 @@ export default function ResizerApp({
       <main className="mx-auto max-w-4xl px-4 py-10">
         <header className="rise text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" /> 100% in
-            your browser. Nothing is uploaded.
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Your images
+            never leave your browser.
           </span>
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">
             <span className="grad-text">{title}</span>
@@ -305,6 +387,60 @@ export default function ResizerApp({
                     />
                   </span>
                 </button>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={bg}
+                    disabled={!!busy}
+                    onClick={toggleBg}
+                    className={`flex w-full items-center justify-between text-left disabled:opacity-70 ${FOCUS}`}
+                  >
+                    <span>
+                      <span className="font-semibold">🖼 Light background</span>
+                      <span className="block text-xs text-slate-600">
+                        Removes the background on your device. First use
+                        downloads a model.
+                      </span>
+                    </span>
+                    <span
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition ${bg ? "btn-grad" : "bg-slate-300"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${bg ? "left-5" : "left-0.5"}`}
+                      />
+                    </span>
+                  </button>
+                  {bg && (
+                    <div className="mt-3 flex items-center gap-2">
+                      {SWATCHES.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          aria-label={`Background ${c}`}
+                          onClick={() => {
+                            setBgColor(c);
+                            clearResult();
+                          }}
+                          style={{ background: c }}
+                          className={`h-8 w-8 rounded-full border ${bgColor === c ? "ring-2 ring-indigo-500" : "border-slate-300"} ${FOCUS}`}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={bgColor}
+                        onChange={(e) => {
+                          setBgColor(e.target.value);
+                          clearResult();
+                        }}
+                        className="h-8 w-8 cursor-pointer rounded-full border border-slate-300 p-0"
+                        aria-label="Custom background color"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 {preset.textOverlay && (
                   <>
                     <label className="block text-sm font-medium text-slate-700">
