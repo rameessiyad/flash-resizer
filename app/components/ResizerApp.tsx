@@ -55,9 +55,15 @@ export default function ResizerApp({
   useEffect(() => {
     if (src && cv.current)
       try {
-        renderCanvas(src, preset, crop, ov, cv.current, enh);
+        const big = {
+          ...preset,
+          width: preset.width * k,
+          height: preset.height * k,
+        };
+        renderCanvas(src, big, crop, ov, cv.current, enh);
       } catch {}
   });
+
   useEffect(
     () => () => {
       if (res) URL.revokeObjectURL(res.url);
@@ -341,7 +347,6 @@ export default function ResizerApp({
                   style={{
                     width: preset.width * k,
                     aspectRatio: `${preset.width}/${preset.height}`,
-                    imageRendering: k > 1 ? "pixelated" : "auto",
                   }}
                   aria-label="Crop preview"
                 />
@@ -527,6 +532,12 @@ export default function ResizerApp({
                 alt="Final result"
                 width={res.width}
                 height={res.height}
+                style={{
+                  width: res.width * k,
+                  height: "auto",
+                  imageRendering:
+                    preset.kind === "signature" && k > 1 ? "pixelated" : "auto",
+                }}
                 className="mx-auto my-4 max-w-full rounded-lg shadow-md ring-1 ring-slate-200"
               />
               <p className="text-sm font-medium">
