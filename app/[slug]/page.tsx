@@ -2,15 +2,34 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PRESETS, PresetId, Preset, GROUPS, ratio } from "../../lib/presets";
+import { LANDINGS } from "../../lib/landings";
 import ResizerApp from "../components/ResizerApp";
 
 export const dynamicParams = false;
 
 const entries = Object.entries(PRESETS) as [PresetId, Preset][];
 const find = (slug: string) => entries.find(([, p]) => p.slug === slug);
+const landingOf = (slug: string) => LANDINGS.find((l) => l.slug === slug);
+
+type Faq = { q: string; a: string };
+
+function faqJsonLd(faqs: Faq[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
 
 export function generateStaticParams() {
-  return entries.map(([, p]) => ({ slug: p.slug }));
+  return [
+    ...entries.map(([, p]) => ({ slug: p.slug })),
+    ...LANDINGS.map((l) => ({ slug: l.slug })),
+  ];
 }
 
 export async function generateMetadata({
@@ -19,15 +38,30 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+
+  const l = landingOf(slug);
+  if (l) {
+    return {
+      title: l.title,
+      description: l.description,
+      alternates: { canonical: `/${l.slug}` },
+      openGraph: {
+        title: l.title,
+        description: l.description,
+        url: `/${l.slug}`,
+      },
+    };
+  }
+
   const hit = find(slug);
   if (!hit) return {};
   const p = hit[1];
   return {
-    title: `${p.name} Resizer: ${p.width}×${p.height} px, ${p.minKB}–${p.maxKB} KB`,
+    title: `${p.name} Image Resizer: ${p.width}×${p.height} px, ${p.minKB}–${p.maxKB} KB`,
     description: `Resize your ${p.kind} to ${p.width}×${p.height} px and ${p.minKB}–${p.maxKB} KB for ${p.name}. Free, no upload, processed in your browser.`,
     alternates: { canonical: `/${p.slug}` },
     openGraph: {
-      title: `${p.name} Resizer | FlashResizer`,
+      title: `${p.name} Image Resizer | FlashResizer`,
       description: `Exact ${p.width}×${p.height} px, ${p.minKB}–${p.maxKB} KB. No upload, no signup.`,
       url: `/${p.slug}`,
     },
@@ -40,11 +74,113 @@ export default async function PresetPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  // ---------- Landing pages (keyword pages) ----------
+  const l = landingOf(slug);
+  if (l) {
+    const items = l.ids.map((i) => PRESETS[i]);
+    const first = l.ids[0];
+    const topic = l.h1.replace(" Image Resizer", "");
+
+    const landingFaqs: Faq[] = [
+      {
+        q: `What size is required for ${topic}?`,
+        a:
+          items
+            .map(
+              (x) =>
+                `${x.name}: ${x.width}×${x.height} px, ${x.minKB}–${x.maxKB} KB`,
+            )
+            .join(". ") + ".",
+      },
+      {
+        q: "Is my image uploaded to a server?",
+        a: "No. Everything happens inside your browser. Your image never leaves your device.",
+      },
+      {
+        q: "Is this resizer free?",
+        a: "Yes. It is free, with no signup and no watermark.",
+      },
+    ];
+
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd(landingFaqs)),
+          }}
+        />
+        <ResizerApp initialId={first} title={l.h1} intro={l.intro} />
+
+        <section className="mx-auto max-w-4xl px-4 pb-16 text-slate-700">
+          <h2 className="text-xl font-bold text-slate-900">
+            Sizes for {topic}
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {l.ids.map((i) => (
+              <li key={i}>
+                <Link
+                  href={`/${PRESETS[i].slug}`}
+                  className="text-indigo-700 underline"
+                >
+                  {PRESETS[i].name}
+                </Link>
+                : {PRESETS[i].width}×{PRESETS[i].height} px, {PRESETS[i].minKB}–
+                {PRESETS[i].maxKB} KB
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm text-slate-600">
+            Requirements can change. Always confirm the current specification on
+            the official portal before submitting.
+          </p>
+
+          <h2 className="mt-10 text-xl font-bold text-slate-900">
+            Frequently asked questions
+          </h2>
+          <div className="mt-3 space-y-4">
+            {landingFaqs.map((f) => (
+              <div key={f.q}>
+                <h3 className="font-semibold text-slate-900">{f.q}</h3>
+                <p className="mt-1">{f.a}</p>
+              </div>
+            ))}
+          </div>
+
+          <h2 className="mt-10 text-xl font-bold text-slate-900">
+            Other resizers
+          </h2>
+          <nav aria-label="Other resizers" className="mt-3">
+            <ul className="flex flex-wrap gap-x-4 gap-y-1">
+              {LANDINGS.filter((x) => x.slug !== l.slug).map((x) => (
+                <li key={x.slug}>
+                  <Link
+                    href={`/${x.slug}`}
+                    className="text-indigo-700 underline"
+                  >
+                    {x.h1}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/" className="text-indigo-700 underline">
+                  All FlashResizer tools
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </section>
+      </>
+    );
+  }
+
+  // ---------- Preset pages ----------
   const hit = find(slug);
   if (!hit) notFound();
   const [id, p] = hit;
 
-  const faqs = [
+  const faqs: Faq[] = [
     {
       q: `What is the required size for ${p.name}?`,
       a: `${p.width} × ${p.height} pixels (${ratio(p)}), JPEG, between ${p.minKB} KB and ${p.maxKB} KB.`,
@@ -71,8 +207,15 @@ export default async function PresetPage({
       : []),
   ];
 
+  // Landing page(s) that include this preset, for a "Related" link
+  const related = LANDINGS.filter((x) => x.ids.includes(id));
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqs)) }}
+      />
       <ResizerApp
         initialId={id}
         title={`${p.name} Resizer`}
@@ -108,6 +251,24 @@ export default async function PresetPage({
             </div>
           ))}
         </div>
+
+        {related.length > 0 && (
+          <>
+            <h2 className="mt-10 text-xl font-bold text-slate-900">Related</h2>
+            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              {related.map((x) => (
+                <li key={x.slug}>
+                  <Link
+                    href={`/${x.slug}`}
+                    className="text-indigo-700 underline"
+                  >
+                    {x.h1}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h2 className="mt-10 text-xl font-bold text-slate-900">
           Other resizers

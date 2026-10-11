@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://flashresizer.in/sitemap.xml",
+    sitemap: "https://www.flashresizer.in/sitemap.xml",
   };
 }

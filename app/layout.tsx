@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://flashresizer.in"),
+  metadataBase: new URL("https://www.flashresizer.in"),
   title: {
     default:
       "FlashResizer – Resize Photos & Signatures for Indian Applications",
@@ -20,13 +20,14 @@ export const metadata: Metadata = {
       "Exact size and KB for Kerala PSC, PAN, Passport and MVD. No upload, no signup.",
   },
   twitter: { card: "summary_large_image" },
+  alternates: { canonical: "/" },
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "FlashResizer",
-  url: "https://flashresizer.in",
+  url: "https://www.flashresizer.in",
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Any (web browser)",
   offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },

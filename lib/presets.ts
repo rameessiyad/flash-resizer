@@ -8,6 +8,9 @@ export type Preset = {
   maxKB: number;
   targetKB?: number;
   textOverlay: boolean;
+  seoTitle: string; // don't add "| FlashResizer", the layout template does it
+  seoDescription: string;
+  h1: string;
 };
 // Single source of truth. Add a portal by adding an entry here (and to GROUPS).
 export const PRESETS = {
@@ -21,6 +24,10 @@ export const PRESETS = {
     maxKB: 50,
     targetKB: 30,
     textOverlay: true,
+    seoTitle: "PSC Photo Resizer – Kerala PSC Thulasi Photo 150x200, 20-50KB",
+    seoDescription:
+      "Resize your photo for Kerala PSC Thulasi to 150x200 px and 20-50 KB. Free PSC image resizer, works in your browser, no upload.",
+    h1: "Kerala PSC Photo Resizer",
   },
   kerala_psc_sign: {
     name: "Kerala PSC Signature",
@@ -31,6 +38,10 @@ export const PRESETS = {
     minKB: 10,
     maxKB: 50,
     textOverlay: false,
+    seoTitle: "PSC Signature Resizer – Kerala PSC Signature 150x100, 10-50KB",
+    seoDescription:
+      "Resize your signature for Kerala PSC to 150x100 px and 10-50 KB. Free PSC image resizer, no upload, no signup.",
+    h1: "Kerala PSC Signature Resizer",
   },
   indian_passport: {
     name: "Passport Seva (General)",
@@ -41,6 +52,10 @@ export const PRESETS = {
     minKB: 20,
     maxKB: 100,
     textOverlay: false,
+    seoTitle: "Passport Photo Resizer – Passport Seva Photo 500x500, 20-100KB",
+    seoDescription:
+      "Resize your photo for Passport Seva to 500x500 px and 20-100 KB. Free passport image resizer, processed in your browser.",
+    h1: "Passport Photo Resizer",
   },
   pan_card_photo: {
     name: "PAN Card Photo",
@@ -51,6 +66,10 @@ export const PRESETS = {
     minKB: 5,
     maxKB: 30,
     textOverlay: false,
+    seoTitle: "PAN Card Photo Resizer – 213x213 px, 5-30KB",
+    seoDescription:
+      "Resize your photo for a PAN card application to 213x213 px and under 30 KB. Free PAN card image resizer, no upload.",
+    h1: "PAN Card Photo Resizer",
   },
   pan_card_sign: {
     name: "PAN Card Signature",
@@ -61,6 +80,10 @@ export const PRESETS = {
     minKB: 5,
     maxKB: 50,
     textOverlay: false,
+    seoTitle: "PAN Card Signature Resizer – 400x200 px, 5-50KB",
+    seoDescription:
+      "Resize your signature for a PAN card application to 400x200 px and 5-50 KB. Free PAN card image resizer, no signup.",
+    h1: "PAN Card Signature Resizer",
   },
   mvd_license_photo: {
     name: "Kerala MVD Photo",
@@ -71,6 +94,11 @@ export const PRESETS = {
     minKB: 10,
     maxKB: 20,
     textOverlay: false,
+    seoTitle:
+      "MVD Photo Resizer – Kerala Driving Licence Photo 420x525, 10-20KB",
+    seoDescription:
+      "Resize your photo for Kerala MVD licence services to 420x525 px and 10-20 KB. Free MVD image resizer, works in your browser.",
+    h1: "Kerala MVD Photo Resizer",
   },
   mvd_license_sign: {
     name: "Kerala MVD Signature",
@@ -81,6 +109,11 @@ export const PRESETS = {
     minKB: 10,
     maxKB: 20,
     textOverlay: false,
+    seoTitle:
+      "MVD Signature Resizer – Kerala Licence Signature 256x64, 10-20KB",
+    seoDescription:
+      "Resize your signature for Kerala MVD to 256x64 px and 10-20 KB. Free MVD image resizer, no upload.",
+    h1: "Kerala MVD Signature Resizer",
   },
 } as const satisfies Record<string, Preset>;
 export type PresetId = keyof typeof PRESETS;

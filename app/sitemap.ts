@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { PRESETS } from "../lib/presets";
 
-const base = "https://flashresizer.in";
+const base = "https://www.flashresizer.in";
 // Update this date only when page content actually changes.
 const updated = new Date("2026-10-06");
 
