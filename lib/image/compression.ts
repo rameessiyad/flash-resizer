@@ -1,6 +1,6 @@
 import { UserError } from "./validation";
 const MIN_Q = 0.3,
-  MAX_Q = 0.95,
+  MAX_Q = 0.98,
   STEPS = 8;
 const toBlob = (c: HTMLCanvasElement, q: number) =>
   new Promise<Blob>((res, rej) =>
@@ -17,9 +17,9 @@ const toBlob = (c: HTMLCanvasElement, q: number) =>
 export async function compress(
   c: HTMLCanvasElement,
   maxKB: number,
-  targetKB?: number,
+  _targetKB?: number, 
 ) {
-  const goal = Math.min(maxKB, targetKB ?? maxKB * 0.95) * 1024;
+  const goal = maxKB * 0.97 * 1024; // small safety margin under the limit
   const top = await toBlob(c, MAX_Q);
   if (top.size <= goal) return { blob: top, quality: MAX_Q };
   let best = await toBlob(c, MIN_Q);

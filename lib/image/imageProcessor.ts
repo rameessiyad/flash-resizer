@@ -295,6 +295,12 @@ export async function processImage(a: {
     });
   } else {
     const compressed = await compress(canvas, p.maxKB, p.targetKB);
+    // console.log(
+    //   "PSC quality:",
+    //   compressed.quality,
+    //   "size KB:",
+    //   compressed.blob.size / 1024,
+    // );
     blob = compressed.blob;
   }
 
